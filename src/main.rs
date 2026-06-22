@@ -1,5 +1,6 @@
 /*
-* Copyright 2018-2019 Michal Mauser (Original source)
+* Copyright 2018-2019 Michal Mauser // Credit remains to original source provider.
+* // Thank you for sharing the copiosis-rocket repo. And allowing us to learn and build upon your code.
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU Affero General Public License as published by
@@ -21,13 +22,11 @@
 
 use rocket::tokio::sync::Mutex;
 use rocket_sync_db_pools::rusqlite::Connection;
-use rocket::serde::Deserialize;
 use rocket_dyn_templates::Template;
 use rocket::request::FlashMessage;
 use rocket::fairing::AdHoc;
 #[cfg(feature = "gui")]
 use webbrowser;
-use rocket::figment;
 
 mod users;
 //use users::*;
@@ -38,9 +37,6 @@ mod transfers;
 mod db;
 
 pub type DbConn = Mutex<Connection>;
-#[derive(Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct TemplateDir(bool);
 
 #[get("/")]
 fn index(flash: Option<FlashMessage>) -> Template {
@@ -58,7 +54,7 @@ fn index(flash: Option<FlashMessage>) -> Template {
 
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
-    let conn = Connection::open("copiosis.sqlite").expect("db file");
+    let conn = Connection::open("openreward.sqlite").expect("db file");
 
     // Initialize the `entries` table in the database.
     db::init_database(&conn);
@@ -79,8 +75,7 @@ async fn main() -> Result<(), rocket::Error> {
         })))
     }
 
-    let conf: Result<Vec<String>, figment::Error> = rct.figment().extract_inner("template_dir");
-    rct.manage(TemplateDir(if let Ok(dir) = conf {!dir.is_empty()} else {false}))
-        .launch().await?;
+    rct.launch().await?;
+    
     Ok(())
 }
