@@ -9,7 +9,7 @@ use rocket::response::Flash;
 use rocket::serde::Serialize;
 
 use crate::users::User;
-use super::{DbConn,TemplateDir};
+use super::DbConn;
 
 #[derive(Serialize)]
 #[serde(crate = "rocket::serde")]
@@ -92,7 +92,7 @@ pub async fn transfer_page(conn: &State<DbConn> ) -> Template {
 }
 
 #[post("/transfer", data = "<post>")]
-pub async fn transfer(conn: &State<DbConn>, post: Form<Transfer>, templatedir: &State<TemplateDir>) -> Flash<Redirect> {
+pub async fn transfer(conn: &State<DbConn>, post: Form<Transfer>) -> Flash<Redirect> {
     let transfer = post.into_inner();
 
     let tmpconn = conn.lock().await;
@@ -100,8 +100,7 @@ pub async fn transfer(conn: &State<DbConn>, post: Form<Transfer>, templatedir: &
     let product_query = tmpconn.query_row("SELECT gateway, benefit FROM user_products WHERE ProductID = $1 AND UserID = $2",
                                           [&transfer.product, &transfer.producer], |row| { Ok((row.get(0)?, row.get(1)?)) });
     if product_query.is_err() {
-        return Flash::success(Redirect::to("/"),
-                              if templatedir.0 { "Produkt musí být nejprve uživateli přiřazen." } else { "Product must be assigned to the user first." })
+        return Flash::success(Redirect::to("/"), "Product must be assigned to the user first.")
     }
     let product_params:(f64, f64) = product_query.unwrap();
 
@@ -110,15 +109,11 @@ pub async fn transfer(conn: &State<DbConn>, post: Form<Transfer>, templatedir: &
          .expect("get nbr for user");
     
      if nbr - product_params.0 * transfer.amount < 0.0 && transfer.consumer != 0 {
-         return Flash::success(Redirect::to("/"),
-                               if templatedir.0 { "Konzument nemá dostatek NBR." }
-                                   else { "Consumer has insufficient NBR." })
+         return Flash::success(Redirect::to("/"), "Consumer has insufficient NBR.")
      }
 
     if transfer.producer == transfer.consumer {
-        return Flash::success(Redirect::to("/"),
-                              if templatedir.0 { "Konzument a producent nesmí být stejná osoba." }
-                              else { "Consumer and producer must not be the same." })
+        return Flash::success(Redirect::to("/"), "Consumer and producer must not be the same.")
     }
 
     if transfer.consumer != 0 {
@@ -143,8 +138,7 @@ pub async fn transfer(conn: &State<DbConn>, post: Form<Transfer>, templatedir: &
             .expect("update entries in users table");
     }
 
-    Flash::success(Redirect::to("/"),
-                   if templatedir.0 { "Transfer proveden." } else { "Transfer complete." })
+    Flash::success(Redirect::to("/"), "Transfer complete.")
 
 }
 
@@ -207,7 +201,7 @@ pub async fn transfers(conn: &State<DbConn>) -> Template {
 }
 
 #[get("/deletetransfer/<transfer_id>")]
-pub async fn delete_transfer(conn: &State<DbConn>, transfer_id: i64, templatedir: &State<TemplateDir>) -> Flash<Redirect> {
+pub async fn delete_transfer(conn: &State<DbConn>, transfer_id: i64) -> Flash<Redirect> {
 
     let tmpconn = conn.lock().await;
 
@@ -220,14 +214,12 @@ pub async fn delete_transfer(conn: &State<DbConn>, transfer_id: i64, templatedir
     tmpconn.execute("DELETE FROM transfers WHERE id = $1",
                     params![&transfer_id])
         .expect("delete single entry from transfers table");
-    tmpconn.execute("UPDATE users SET NBR = NBR - $1, fame = fame - $1 WHERE id = $2",
+    tmpconn.execute("UPDATE users SET NBR = MAX(0.0, NBR - $1), fame = MAX(0.0, fame - $1) WHERE id = $2",
                     params![&transfer_params.2, &transfer_params.0])
         .expect("update entries in users table");
     tmpconn.execute("UPDATE users SET NBR = NBR + $1 WHERE id = $2",
                     params![&transfer_params.3, &transfer_params.1])
         .expect("update entries in users table");
 
-    Flash::success(Redirect::to("/"),
-                   if templatedir.0 { "Transfer smazán." }
-                   else { "Transfer deleted." })
+    Flash::success(Redirect::to("/"), "Transfer deleted.")
 }
