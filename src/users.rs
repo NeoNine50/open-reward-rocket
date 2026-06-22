@@ -8,7 +8,7 @@ use rocket::response::Redirect;
 use rocket::response::Flash;
 use rocket::serde::Serialize;
 
-use super::{DbConn,TemplateDir};
+use super::DbConn;
 use crate::products::Product;
 
 #[derive(FromForm, Serialize)]
@@ -41,7 +41,7 @@ pub fn adduser_page() -> Template {
 }
 
 #[post("/adduser", data = "<user>")]
-pub async fn adduser(user: Form<User>, db_conn: &State<DbConn>, templatedir: &State<TemplateDir>) -> Flash<Redirect> {
+pub async fn adduser(user: Form<User>, db_conn: &State<DbConn>) -> Flash<Redirect> {
     let user = user.into_inner();
     let tmpconn = db_conn.lock().await;
 
@@ -51,9 +51,7 @@ pub async fn adduser(user: Form<User>, db_conn: &State<DbConn>, templatedir: &St
                     params![&user.name, &0, &"0"])
         .expect("insert single entry into users table");
 
-    Flash::success(Redirect::to("/"),
-                   if templatedir.0 { "Uživatel přidán." }
-                   else { "User added." })
+    Flash::success(Redirect::to("/"), "User added.")
 }
 
 #[get("/users")]
@@ -159,14 +157,13 @@ pub async fn product_page(userproduct: Form<UserProduct>, db_conn: &State<DbConn
 }
 
 #[post("/user/addproduct", data = "<product>")]
-pub async fn addproduct(product: Form<Product>, db_conn: &State<DbConn>, templatedir: &State<TemplateDir>) -> Flash<Redirect> {
+pub async fn addproduct(product: Form<Product>, db_conn: &State<DbConn>) -> Flash<Redirect> {
     let tmpconn = db_conn.lock().await;
 
     let p = product.into_inner();
 
     if p.gateway < 0.0 {
-        return Flash::success(Redirect::to("/"),
-                              if templatedir.0 { "Error: Brána nesmí být nikdy záporná!" } else { "Error: Gateway must never be negative!" })
+        return Flash::success(Redirect::to("/"), "Error: Gateway must never be negative!")
     }
 
     // Calculate raw benefit
@@ -188,8 +185,7 @@ pub async fn addproduct(product: Form<Product>, db_conn: &State<DbConn>, templat
                             &p.ceb, &p.envben, &p.chb, &p.humanben, &p.id]);
 
     if update_result.is_ok() && update_result.unwrap() == 1 {
-        return Flash::success(Redirect::to("/"),
-                              if templatedir.0 { "Produkt upraven." } else { "Product modified." })
+        return Flash::success(Redirect::to("/"), "Product modified.")
     }
 
     tmpconn.execute("INSERT INTO user_products (UserID, gateway, benefit, time_created,
@@ -201,8 +197,7 @@ pub async fn addproduct(product: Form<Product>, db_conn: &State<DbConn>, templat
                             &p.ceb, &p.envben, &p.chb, &p.humanben, &p.id])
         .expect("insert single entry into products table");
 
-    Flash::success(Redirect::to("/"),
-                   if templatedir.0 { "Produkt přidán." } else { "Product added." })
+    Flash::success(Redirect::to("/"), "Product added.")
 }
 
 #[get("/fame")]
