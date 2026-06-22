@@ -1,8 +1,8 @@
 This program is intended to run only on payer's (community administrator's) PC as it has no security at all. It does not work on Windows XP!
 
-On Linux, start the program with the ./crc command with the terminal opened from your right-click menu from the program's folder. Windows build starts from crc.exe.
+On Linux, start the program with the ./orr command or the ./crc command for older version with the terminal opened from your right-click menu from the program's folder. Newer Windows builds start from orr.exe in the program directory. Or crc.exe for older builds.
 
-After starting, the program will open in your browser. If you see a terminal has opened, keep it open during the duration of the use of the program.
+After starting, the program will open in your browser. If you see a terminal has opened, keep it open during the duration of the use of the program. Close it to terminate the program.
 
 Linux users should install sqlite3.
 
