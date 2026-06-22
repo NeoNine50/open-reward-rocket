@@ -9,7 +9,7 @@ use rocket::response::Flash;
 use rocket::serde::Serialize;
 
 use crate::users::User;
-use super::{DbConn,TemplateDir};
+use super::DbConn;
 
 #[derive(FromForm, Serialize)]
 #[serde(crate = "rocket::serde")]
@@ -124,7 +124,7 @@ pub async fn product_producers(product_id: i64, db_conn: &State<DbConn>) -> Temp
 }
 
 #[post("/product", data = "<product>")]
-pub async fn addproduct(product: Form<User>, db_conn: &State<DbConn>, templatedir: &State<TemplateDir>) -> Flash<Redirect> {
+pub async fn addproduct(product: Form<User>, db_conn: &State<DbConn>) -> Flash<Redirect> {
     let p = product.into_inner();
     let tmpconn = db_conn.lock().await;
 
@@ -137,8 +137,7 @@ pub async fn addproduct(product: Form<User>, db_conn: &State<DbConn>, templatedi
                             &0, &0, &0, &0, &0, &0, &0,
                             &0, &0, &0, &0])
             .expect("insert single entry into products table");
-        Flash::success(Redirect::to("/"),
-                       if templatedir.0 { "Produkt přidán do seznamu produktů." } else { "Product added to products list." })
+        Flash::success(Redirect::to("/"), "Product added to items list.")
     }
     else {
         tmpconn.execute("UPDATE products SET name = $1, gateway = $2, benefit = $3,
@@ -150,8 +149,7 @@ pub async fn addproduct(product: Form<User>, db_conn: &State<DbConn>, templatedi
                             &0, &0, &0, &0, &p.id])
             .expect("update entry in products table");
 
-        Flash::success(Redirect::to("/"),
-                       if templatedir.0 { "Produkt upraven." } else { "Product modified." })
+        Flash::success(Redirect::to("/"), "Product modified.")
     }
 }
 
